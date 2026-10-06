@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Zusammen">
+<meta name="theme-color" content="#F5F5F7">
+<title>Zusammen</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-180.png">
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.383.0/dist/umd/lucide.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --bg:#F5F5F7; --card:#FFFFFF; --ink:#16161A; --ink2:#6E6E78; --line:#E6E6EB;
+  --soft:#ECECF0; --cell:#EEEEF2; --btn:#ECECEF;
+  --n:#5AAEEE; --j:#F27B80; --accent:#16161A;
+  --sheet:#FFFFFF; --shadow:0 18px 40px -18px rgba(20,20,40,.25);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#111114; --card:#1C1C21; --ink:#F2F2F5; --ink2:#9A9AA6; --line:#2C2C33;
+    --soft:#26262D; --cell:#2A2A31; --btn:#2A2A31; --sheet:#1C1C21; --accent:#F2F2F5;
+    --shadow:0 18px 40px -18px rgba(0,0,0,.7);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#111114; --card:#1C1C21; --ink:#F2F2F5; --ink2:#9A9AA6; --line:#2C2C33;
+  --soft:#26262D; --cell:#2A2A31; --btn:#2A2A31; --sheet:#1C1C21; --accent:#F2F2F5;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+html,body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;padding:0}
+button:focus-visible,input:focus-visible{outline:2px solid var(--n);outline-offset:2px}
+input,select{font:inherit;color:var(--ink)}
+.wrap{max-width:560px;margin:0 auto;padding:12px 16px 110px}
+
+/* Header */
+.top{display:flex;align-items:center;gap:10px;padding:6px 0 14px}
+.round{width:48px;height:48px;border-radius:50%;background:var(--btn);display:grid;place-items:center;flex:none}
+.round svg{width:22px;height:22px}
+.spacer{flex:1}
+.plus{background:var(--ink);color:var(--bg)}
+.me-pill{display:flex;align-items:center;gap:8px;height:48px;padding:0 16px 0 6px;border-radius:24px;background:var(--btn);font-weight:600}
+.avatar{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:700;font-size:15px}
+
+/* Duo bar: today's score */
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.duo-card{background:var(--card);border-radius:20px;padding:14px 16px;border:1px solid var(--line)}
+.duo-name{display:flex;align-items:center;gap:8px;font-weight:600;font-size:15px}
+.dot{width:10px;height:10px;border-radius:50%;flex:none}
+.duo-num{font-size:30px;font-weight:700;letter-spacing:-.02em;margin-top:6px;font-variant-numeric:tabular-nums}
+.duo-num small{font-size:15px;color:var(--ink2);font-weight:500}
+.duo-bar{height:6px;border-radius:3px;background:var(--soft);margin-top:8px;overflow:hidden}
+.duo-bar i{display:block;height:100%;border-radius:3px;transition:width .4s}
+
+/* Filters */
+.filters{display:flex;gap:8px;margin-bottom:16px;overflow-x:auto}
+.chip{height:40px;padding:0 16px;border-radius:20px;background:var(--btn);font-size:15px;font-weight:500;white-space:nowrap;display:flex;align-items:center;gap:7px}
+.chip.on{background:var(--ink);color:var(--bg)}
+
+/* Habit card */
+.card{border-radius:28px;padding:18px 18px 20px;margin-bottom:14px;border:1px solid var(--line);background:var(--card);position:relative;overflow:hidden}
+.card::before{content:"";position:absolute;inset:0;background:var(--wash);opacity:.07;pointer-events:none}
+.head{display:flex;align-items:center;gap:14px;position:relative}
+.icon{width:58px;height:58px;border-radius:18px;display:grid;place-items:center;flex:none}
+.icon svg{width:28px;height:28px}
+.titles{flex:1;min-width:0}
+.title{font-size:22px;font-weight:650;letter-spacing:-.01em;line-height:1.15;overflow-wrap:anywhere}
+.sub{font-size:14px;color:var(--ink2);margin-top:3px}
+.check{width:58px;height:58px;border-radius:18px;border:1.5px solid var(--line);background:var(--btn);display:grid;place-items:center;flex:none;position:relative;transition:transform .15s}
+.check:active{transform:scale(.92)}
+.check svg{width:26px;height:26px;color:var(--ink2);position:relative}
+.check.done{border-color:transparent}
+.check.done svg{color:#fff}
+.check .ring{position:absolute;inset:-1.5px;border-radius:18px}
+.join{font-size:12px;font-weight:600;color:var(--ink2);flex-direction:column;gap:2px}
+.join svg{width:20px;height:20px}
+
+.who{display:flex;flex-wrap:wrap;gap:6px 14px;margin:14px 0 12px;position:relative}
+.who span{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--ink2)}
+.who b{color:var(--ink);font-weight:600}
+
+.grid{display:grid;grid-template-rows:repeat(7,1fr);grid-auto-flow:column;gap:4px;position:relative}
+.cell{aspect-ratio:1;border-radius:4px;background:var(--base)}
+.cell.future{background:transparent;box-shadow:inset 0 0 0 1px var(--soft)}
+.cell.today{outline:1.5px solid var(--ink);outline-offset:1px}
+.cell.tap{cursor:pointer}
+.months{display:grid;grid-auto-flow:column;gap:4px;font-size:11px;color:var(--ink2);margin-top:6px;position:relative}
+
+.duo-week{font-size:13px;color:var(--ink2);margin-top:8px;display:flex;align-items:center;gap:5px}
+.duo-week svg{width:14px;height:14px}
+.banner{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:12px 14px;margin-bottom:12px;font-size:14px;line-height:1.35}
+.banner .bi{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;flex:none;color:#fff}
+.banner .bi svg{width:22px;height:22px}
+.banner b{font-weight:650}
+.streak{display:inline-flex;align-items:center;gap:2px;font-weight:600;color:var(--ink)}
+.streak svg{width:14px;height:14px;color:#F59E0B}
+.rank{display:flex;align-items:center;gap:14px;padding:14px 0}
+.rank .avatar{width:48px;height:48px;font-size:19px;position:relative}
+.rank .crown{position:absolute;top:-12px;left:50%;transform:translateX(-50%);color:#F59E0B}
+.rank .crown svg{width:18px;height:18px}
+.rank-main{flex:1;min-width:0}
+.rank-top{display:flex;justify-content:space-between;align-items:baseline;font-weight:600;font-size:17px}
+.rank-pts{font-size:24px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.rank-pts small{font-size:13px;color:var(--ink2);font-weight:500}
+.statgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:8px 0 18px}
+.stat{background:var(--bg);border:1px solid var(--line);border-radius:16px;padding:12px 14px}
+.stat .k{font-size:13px;color:var(--ink2)}
+.stat .v{font-size:20px;font-weight:700;margin-top:4px;display:flex;align-items:center;gap:6px}
+.rules{font-size:14px;line-height:1.5;color:var(--ink2);background:var(--bg);border-radius:16px;padding:14px 16px;margin-top:6px}
+.rules b{color:var(--ink)}
+.rules p{margin:0 0 8px}.rules p:last-child{margin:0}
+h4{font-size:15px;margin:18px 0 6px}
+.empty{text-align:center;padding:48px 24px;color:var(--ink2)}
+.empty h2{color:var(--ink);font-size:20px;margin:0 0 8px}
+.cta{height:50px;padding:0 22px;border-radius:25px;background:var(--ink);color:var(--bg);font-weight:600;font-size:16px;margin-top:16px}
+
+/* Sheet */
+.scrim{position:fixed;inset:0;background:rgba(10,10,20,.35);opacity:0;pointer-events:none;transition:opacity .2s;z-index:20}
+.scrim.open{opacity:1;pointer-events:auto}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:21;background:var(--sheet);border-radius:28px 28px 0 0;
+  padding:10px 20px calc(24px + env(safe-area-inset-bottom,0px));max-height:88vh;overflow-y:auto;
+  transform:translateY(105%);transition:transform .28s cubic-bezier(.2,.8,.2,1);max-width:560px;margin:0 auto;box-shadow:var(--shadow)}
+.sheet.open{transform:none}
+.grab{width:40px;height:5px;border-radius:3px;background:var(--line);margin:0 auto 14px}
+.sheet h3{font-size:22px;margin:0 0 4px;letter-spacing:-.01em}
+.sheet .hint{color:var(--ink2);font-size:14px;margin:0 0 16px}
+.field{margin-bottom:16px}
+.field label{display:block;font-size:13px;color:var(--ink2);margin-bottom:6px;font-weight:500}
+.input{width:100%;height:48px;border-radius:14px;border:1px solid var(--line);background:var(--bg);padding:0 14px;font-size:16px}
+.row{display:flex;gap:10px}
+.row>*{flex:1}
+.seg{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;background:var(--bg);padding:4px;border-radius:14px;border:1px solid var(--line)}
+.seg button{height:40px;border-radius:10px;font-size:14px;font-weight:500;color:var(--ink2)}
+.seg button.on{background:var(--card);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.icons{display:grid;grid-template-columns:repeat(auto-fill,minmax(48px,1fr));gap:8px}
+.icons button{height:48px;border-radius:14px;background:var(--bg);border:1px solid var(--line);display:grid;place-items:center}
+.icons button.on{border-color:var(--ink);background:var(--card)}
+.icons svg{width:22px;height:22px}
+.btn{width:100%;height:52px;border-radius:16px;font-weight:600;font-size:16px;background:var(--ink);color:var(--bg);margin-top:6px}
+.btn.ghost{background:var(--btn);color:var(--ink)}
+.btn.danger{background:transparent;color:#E5484D}
+.note{font-size:13px;color:var(--ink2);margin-top:6px;line-height:1.4}
+
+.stepper{display:flex;align-items:center;justify-content:center;gap:22px;margin:10px 0 18px}
+.stepper button{width:60px;height:60px;border-radius:50%;background:var(--btn);display:grid;place-items:center}
+.stepper svg{width:26px;height:26px}
+.big{font-size:46px;font-weight:700;letter-spacing:-.03em;min-width:130px;text-align:center;font-variant-numeric:tabular-nums}
+.big small{display:block;font-size:15px;color:var(--ink2);font-weight:500;letter-spacing:0}
+
+.setrow{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--line);gap:12px}
+.setrow:last-of-type{border-bottom:0}
+.code{font-size:28px;font-weight:700;letter-spacing:.12em;text-align:center;padding:18px;border-radius:18px;background:var(--bg);border:1px dashed var(--line);margin:8px 0}
+
+/* Onboarding */
+.onb{min-height:100%;display:flex;flex-direction:column;justify-content:center;padding:32px 24px;max-width:460px;margin:0 auto}
+.onb h1{font-size:34px;letter-spacing:-.03em;line-height:1.1;margin:0 0 10px}
+.onb p{color:var(--ink2);font-size:16px;line-height:1.5;margin:0 0 24px}
+.pick{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+.pick button{border-radius:22px;padding:22px 12px;background:var(--card);border:2px solid var(--line);display:flex;flex-direction:column;align-items:center;gap:10px;font-weight:600;font-size:17px}
+.pick button.on{border-color:var(--ink)}
+.pick .avatar{width:56px;height:56px;font-size:22px}
+.logo{display:flex;margin-bottom:28px}
+.logo span{width:44px;height:44px;border-radius:14px}
+.logo span+span{margin-left:-14px;mix-blend-mode:multiply}
+
+.sync{font-size:12px;color:var(--ink2);display:flex;align-items:center;gap:5px}
+.sync i{width:7px;height:7px;border-radius:50%;background:#34C759;display:inline-block}
+.sync.off i{background:#F59E0B}
+.loading{display:grid;place-items:center;min-height:60vh;color:var(--ink2)}
+.toast{position:fixed;left:50%;bottom:calc(28px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);
+  background:var(--ink);color:var(--bg);padding:12px 18px;border-radius:22px;font-size:14px;font-weight:500;
+  opacity:0;transition:.25s;z-index:40;pointer-events:none;max-width:90vw;text-align:center}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div class="scrim" id="scrim"></div>
+<div class="sheet" id="sheet" role="dialog" aria-modal="true"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ---------- Konstanten ---------- */
+const PEOPLE = {
+  n:{id:'n', name:'Nikolaj', color:'#5AAEEE'},
+  j:{id:'j', name:'Julia',   color:'#F27B80'}
+};
+const ICONS = ['dumbbell','pill','bed-double','sprout','book-open','glass-water','footprints','moon',
+  'heart','brain','apple','bike','music','pencil','sun','droplets','salad','languages','bath','smile'];
+const TYPES = {
+  check:{label:'Abhaken'}, count:{label:'Menge'}, time:{label:'Zeit'}, weekly:{label:'Wochenziel'}
+};
+const WEEKS = 18;
+const STORE = 'zusammen-habits-v1';
+const WD = ['Mo','Di','Mi','Do','Fr','Sa','So'];
+const MONTHS = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+
+/* ---------- Datums-Helfer ---------- */
+const pad = n => String(n).padStart(2,'0');
+const key = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const today = () => { const d=new Date(); d.setHours(0,0,0,0); return d; };
+const addDays = (d,n) => { const x=new Date(d); x.setDate(x.getDate()+n); return x; };
+const mondayOf = d => addDays(d, -((d.getDay()+6)%7));
+const fmtDay = d => `${['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag'][d.getDay()]}, ${d.getDate()}. ${MONTHS[d.getMonth()]}`;
+const parseKey = k => { const [y,m,dd]=k.split('-').map(Number); return new Date(y,m-1,dd); };
+
+/* ---------- Datenschicht: Supabase ---------- */
+const SB_URL = 'https://wuquhlamjuufwyplcblw.supabase.co';
+const SB_KEY = 'sb_publishable_Nz0j7VRFi_JWX4Jk0aFsGw_jm-ZGjF7';
+let sb = null, channel = null, online = true, loaded = false;
+try{ sb = supabase.createClient(SB_URL, SB_KEY, {auth:{persistSession:false, autoRefreshToken:false}}); }catch(e){ console.error(e); }
+
+async function rpc(fn, args){
+  if(!sb) throw new Error('Supabase nicht geladen');
+  const {data, error} = await sb.rpc(fn, args);
+  if(error) throw error;
+  return data;
+}
+async function pull(){
+  try{
+    const d = await rpc('get_space', {p_code: state.code});
+    state.habits = (d.habits||[]).map(h=>({...h}));
+    state.logs = {};
+    state.habits.forEach(h=> state.logs[h.id] = {});
+    (d.logs||[]).forEach(l=>{ (state.logs[l.h] ||= {})[l.d] = Number(l.v); });
+    online = true; loaded = true; save();
+  }catch(e){ console.error(e); online = false; loaded = true; }
+  render();
+}
+function connect(){
+  if(!sb || channel) return;
+  channel = sb.channel('zusammen-'+state.code);
+  channel.on('broadcast', {event:'changed'}, msg => {
+    pull();
+    const p = msg.payload||{};
+    if(p.by && p.by!==state.me && p.text) toast(p.text);
+  }).subscribe();
+}
+function ping(text){ try{ channel?.send({type:'broadcast', event:'changed', payload:{by:state.me, text}}); }catch(e){} }
+async function push(fn, args, text){
+  try{ await rpc(fn, {p_code: state.code, ...args}); online = true; ping(text); }
+  catch(e){ console.error(e); online = false; toast('Nicht gespeichert. Prüfe die Internetverbindung.'); pull(); }
+}
+function habitData(h){ const {id, owner, ...rest} = h; return rest; }
+const saveHabitRemote = (h, text) => push('save_habit', {p_id:h.id, p_owner:h.owner, p_data:habitData(h)}, text);
+
+let state = load();
+function load(){
+  try{ const raw = localStorage.getItem(STORE); if(raw) return JSON.parse(raw); }catch(e){}
+  return null;
+}
+function save(){
+  try{ localStorage.setItem(STORE, JSON.stringify(state)); }catch(e){}
+}
+const uid = () => Math.random().toString(36).slice(2,10);
+const CODE_CHARS='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const makeCode = () => { const a=new Uint32Array(10); crypto.getRandomValues(a); return [...a].map(x=>CODE_CHARS[x%CODE_CHARS.length]).join(''); };
+const fmtCode = c => c.slice(0,5)+'-'+c.slice(5);
+const normCode = c => (c||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+
+function seedDemo(){
+  const h = [
+    {owner:'n',name:'Gym',icon:'dumbbell',type:'weekly',perWeek:3,desc:''},
+    {owner:'j',name:'Gym',icon:'dumbbell',type:'weekly',perWeek:3,desc:''},
+    {owner:'n',name:'Supplements',icon:'pill',type:'check',desc:''},
+    {owner:'n',name:'Bett',icon:'bed-double',type:'check',desc:'Bett machen'},
+    {owner:'j',name:'Bett',icon:'bed-double',type:'check',desc:'Bett machen'},
+    {owner:'n',name:'Proteinshake',icon:'sprout',type:'check',desc:''},
+    {owner:'j',name:'Wasser',icon:'glass-water',type:'count',target:2,unit:'Liter',desc:''},
+    {owner:'j',name:'Lesen',icon:'book-open',type:'time',target:20,desc:''},
+  ].map(x=>({id:uid(),created:key(addDays(today(),-WEEKS*7)),...x}));
+  const logs = {};
+  const t = today();
+  const rate = {Gym:.42,Supplements:.8,Bett:.7,Proteinshake:.55,Wasser:.75,Lesen:.6};
+  h.forEach(x=>{
+    logs[x.id]={};
+    for(let i=1;i<75;i++){
+      const d=addDays(t,-i);
+      if(Math.random()<rate[x.name]){
+        let v=1;
+        if(x.type==='count') v = Math.round((x.target*(.8+Math.random()*.5))*4)/4;
+        if(x.type==='time') v = Math.round(x.target*(.8+Math.random()*.6)/5)*5;
+        logs[x.id][key(d)] = v;
+      }
+    }
+  });
+  return {habits:h, logs};
+}
+
+/* ---------- Logik ---------- */
+function frac(h, k){
+  const v = state.logs[h.id]?.[k];
+  if(!v) return 0;
+  if(h.type==='count'||h.type==='time') return Math.min(v/h.target,1);
+  return 1;
+}
+function weekCount(h){
+  const m = mondayOf(today()); let c=0;
+  for(let i=0;i<7;i++) if(frac(h,key(addDays(m,i)))>=1) c++;
+  return c;
+}
+/* ---------- Punkte & Streaks ---------- */
+const RULES = {base:10, streakMax:10, weekBase:10, weekExtra:5, weekStep:5, weekMax:25};
+const weekKey = d => key(mondayOf(d));
+let calc = {};
+function startOf(h){
+  let s = parseKey(h.created);
+  for(const k in (state.logs[h.id]||{})){ const d=parseKey(k); if(d<s) s=d; }
+  return s;
+}
+function computeDaily(h){
+  const t=today(), pts={}, joker=new Set();
+  let streak=0, best=0, jw=null;
+  for(let d=startOf(h); d<=t; d=addDays(d,1)){
+    const k=key(d);
+    if(frac(h,k)>=1){ streak++; pts[k]=RULES.base+Math.min(streak-1,RULES.streakMax); }
+    else if(+d===+t){ /* heute noch offen: Serie bleibt */ }
+    else if(streak>0 && jw!==weekKey(d)){ jw=weekKey(d); joker.add(k); }
+    else streak=0;
+    best=Math.max(best,streak);
+  }
+  return {pts, joker, streak, best, unit:'Tage'};
+}
+function computeWeekly(h){
+  const t=today(), cur=mondayOf(t), pts={};
+  let streak=0, best=0;
+  for(let w=mondayOf(startOf(h)); w<=cur; w=addDays(w,7)){
+    let cnt=0;
+    for(let i=0;i<7;i++){
+      const d=addDays(w,i); if(d>t) break; const k=key(d);
+      if(frac(h,k)>=1){
+        cnt++;
+        let p = cnt<=h.perWeek ? RULES.weekBase : RULES.weekExtra;
+        if(cnt===h.perWeek){ streak++; p += Math.min(streak*RULES.weekStep, RULES.weekMax); }
+        pts[k]=p;
+      }
+    }
+    if(cnt<h.perWeek && +w!==+cur) streak=0;
+    best=Math.max(best,streak);
+  }
+  return {pts, joker:new Set(), streak, best, unit:'Wochen'};
+}
+function computeAll(){
+  calc={};
+  state.habits.forEach(h=> calc[h.id] = h.type==='weekly' ? computeWeekly(h) : computeDaily(h));
+}
+function pointsFor(p, from, to){
+  let s=0;
+  state.habits.filter(h=>h.owner===p).forEach(h=>{
+    const pts = calc[h.id]?.pts || {};
+    for(const k in pts) if(k>=from && k<=to) s+=pts[k];
+  });
+  return s;
+}
+function periodRange(per){
+  const t=today(), tk=key(t);
+  if(per==='week') return [key(mondayOf(t)), tk];
+  if(per==='month') return [key(new Date(t.getFullYear(),t.getMonth(),1)), tk];
+  if(per==='year') return [key(new Date(t.getFullYear(),0,1)), tk];
+  return ['0000-00-00', tk];
+}
+function weekHistory(){
+  // abgeschlossene Wochen mit Punkten
+  if(!state.habits.length) return [];
+  let first = today();
+  state.habits.forEach(h=>{ const s=startOf(h); if(s<first) first=s; });
+  const out=[], cur=mondayOf(today());
+  for(let w=mondayOf(first); w<cur; w=addDays(w,7)){
+    const a=key(w), b=key(addDays(w,6));
+    const n=pointsFor('n',a,b), j=pointsFor('j',a,b);
+    if(n||j) out.push({start:w, n, j, win: n>j?'n':j>n?'j':null});
+  }
+  return out;
+}
+function bestStreak(p){
+  let best=null;
+  state.habits.filter(h=>h.owner===p).forEach(h=>{
+    const c=calc[h.id]; if(c && c.streak>0 && (!best || c.streak>best.streak)) best={name:h.name, streak:c.streak, unit:c.unit};
+  });
+  return best;
+}
+
+function groups(){
+  const map = new Map();
+  state.habits.forEach(h=>{
+    const k = h.name.trim().toLowerCase();
+    if(!map.has(k)) map.set(k,{key:k, n:null, j:null});
+    map.get(k)[h.owner] = h;
+  });
+  return [...map.values()];
+}
+function rep(g){ return g[state.me] || g.n || g.j; }
+function todayScore(p){
+  const hs = state.habits.filter(h=>h.owner===p && h.type!=='weekly');
+  const wk = state.habits.filter(h=>h.owner===p && h.type==='weekly');
+  const k = key(today());
+  let done = hs.filter(h=>frac(h,k)>=1).length;
+  let total = hs.length;
+  // Wochenziele zählen als erledigt, sobald das Ziel diese Woche erreicht ist
+  wk.forEach(h=>{ total++; if(weekCount(h)>=h.perWeek) done++; });
+  return {done,total};
+}
+function valueLabel(h,v){
+  if(h.type==='count') return `${fmtNum(v)} ${h.unit||''}`.trim();
+  if(h.type==='time') return `${v} Min`;
+  return v ? 'erledigt' : '–';
+}
+const fmtNum = n => (Math.round(n*100)/100).toString().replace('.',',');
+
+function subline(h){
+  if(h.desc) return h.desc;
+  if(h.type==='count') return `Ziel: ${fmtNum(h.target)} ${h.unit||''} pro Tag`;
+  if(h.type==='time') return `Ziel: ${h.target} Min pro Tag`;
+  if(h.type==='weekly') return `Ziel: ${h.perWeek}× pro Woche`;
+  return '';
+}
+function personStatus(h){
+  const k = key(today());
+  if(h.type==='weekly') return `${weekCount(h)}/${h.perWeek} diese Woche`;
+  const v = state.logs[h.id]?.[k];
+  if(h.type==='check') return v ? 'heute erledigt' : 'heute offen';
+  return v ? `heute ${valueLabel(h,v)}` : 'heute offen';
+}
+
+/* ---------- Farben ---------- */
+const mix = (c,p) => `color-mix(in srgb, ${c} ${p}%, transparent)`;
+function cellBg(g, k){
+  const fn = g.n ? frac(g.n,k) : 0, fj = g.j ? frac(g.j,k) : 0;
+  const a = f => Math.round(35 + 65*f);
+  if(fn>0 && fj>0) return `linear-gradient(135deg, ${mix(PEOPLE.n.color,a(fn))} 50%, ${mix(PEOPLE.j.color,a(fj))} 50%)`;
+  if(fn>0) return mix(PEOPLE.n.color,a(fn));
+  if(fj>0) return mix(PEOPLE.j.color,a(fj));
+  return null;
+}
+function baseFor(g){
+  if(g.n && g.j) return 'var(--cell)';
+  const p = g.n ? PEOPLE.n : PEOPLE.j;
+  return mix(p.color,14);
+}
+
+/* ---------- Render ---------- */
+const $ = s => document.querySelector(s);
+const esc = s => String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let filter = 'all';
+
+function render(){
+  if(!state || !state.me || !state.code){ renderOnboarding(); return; }
+  if(!loaded && !(state.habits||[]).length){ $('#app').innerHTML='<div class="loading">Lade eure Habits …</div>'; return; }
+  computeAll();
+  const me = PEOPLE[state.me], other = PEOPLE[state.me==='n'?'j':'n'];
+  let gs = groups();
+  if(filter!=='all') gs = gs.filter(g=>g[filter]);
+  // eigene zuerst, gemeinsame vor einzelnen
+  gs.sort((a,b)=> (!!b[state.me]-!!a[state.me]) || ((!!b.n&&!!b.j)-(!!a.n&&!!a.j)));
+
+  const sc = p => { const s=todayScore(p); const pct = s.total? Math.round(s.done/s.total*100):0;
+    return `<div class="duo-card">
+      <div class="duo-name"><span class="dot" style="background:${PEOPLE[p].color}"></span>${PEOPLE[p].name}</div>
+      <div class="duo-num">${s.done}<small> / ${s.total} heute</small></div>
+      <div class="duo-bar"><i style="width:${pct}%;background:${PEOPLE[p].color}"></i></div>
+      <div class="duo-week"><i data-lucide="${lead===p?'crown':'star'}"></i>${pointsFor(p,...periodRange('week'))} Punkte diese Woche</div></div>`; };
+  const wn=pointsFor('n',...periodRange('week')), wj=pointsFor('j',...periodRange('week'));
+  const lead = wn>wj?'n':wj>wn?'j':null;
+  const hist = weekHistory(), last = hist[hist.length-1];
+  let banner='';
+  if(last && +last.start===+addDays(mondayOf(today()),-7)){
+    banner = last.win
+      ? `<button class="banner" id="bBanner" style="width:100%;text-align:left"><span class="bi" style="background:${PEOPLE[last.win].color}"><i data-lucide="trophy"></i></span>
+         <span><b>${PEOPLE[last.win].name}</b> hat letzte Woche gewonnen, ${last[last.win]} zu ${last[last.win==='n'?'j':'n']} Punkten.</span></button>`
+      : `<button class="banner" id="bBanner" style="width:100%;text-align:left"><span class="bi" style="background:#9A9AA6"><i data-lucide="handshake"></i></span><span>Letzte Woche: Unentschieden mit je ${last.n} Punkten.</span></button>`;
+  }
+
+  $('#app').innerHTML = `
+  <div class="wrap">
+    <div class="top">
+      <button class="round" id="bSettings" aria-label="Einstellungen"><i data-lucide="settings"></i></button>
+      <div class="spacer"><span class="sync ${online?'':'off'}"><i></i>${online?'Live':'Offline'}</span></div>
+      <button class="round" id="bRank" aria-label="Rangliste"><i data-lucide="trophy"></i></button>
+      <button class="me-pill" id="bMe" aria-label="Person wechseln">
+        <span class="avatar" style="background:${me.color}">${me.name[0]}</span>${me.name}</button>
+      <button class="round plus" id="bAdd" aria-label="Habit hinzufügen"><i data-lucide="plus"></i></button>
+    </div>
+    ${banner}
+    <div class="duo">${sc(state.me)}${sc(other.id)}</div>
+    <div class="filters">
+      ${[['all','Alle'],['n',PEOPLE.n.name],['j',PEOPLE.j.name]].map(([v,l])=>
+        `<button class="chip ${filter===v?'on':''}" data-f="${v}">${v!=='all'?`<span class="dot" style="background:${PEOPLE[v].color}"></span>`:''}${l}</button>`).join('')}
+    </div>
+    ${gs.length ? gs.map(cardHTML).join('') : `
+      <div class="empty"><h2>Noch keine Habits</h2>
+      <div>Leg deinen ersten Habit an. Gibt ${other.name} ihm denselben Namen, landet ihr beide auf einer Karte.</div>
+      <button class="cta" id="bAdd2">Habit anlegen</button></div>`}
+  </div>`;
+  icons();
+
+  $('#bSettings').onclick = openSettings;
+  $('#bRank').onclick = () => openRanking('week');
+  $('#bBanner') && ($('#bBanner').onclick = () => openRanking('week'));
+  $('#bMe').onclick = openSettings;
+  $('#bAdd').onclick = () => openEditor();
+  $('#bAdd2') && ($('#bAdd2').onclick = () => openEditor());
+  document.querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>{filter=b.dataset.f;render();});
+  document.querySelectorAll('[data-check]').forEach(b=>b.onclick=()=>onCheck(b.dataset.check));
+  document.querySelectorAll('[data-join]').forEach(b=>b.onclick=()=>joinHabit(b.dataset.join));
+  document.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>openEditor(b.dataset.edit));
+  document.querySelectorAll('.grid').forEach(gr=>gr.onclick=e=>{
+    const c=e.target.closest('.cell'); if(!c||c.classList.contains('future')) return;
+    onCell(gr.dataset.g, c.dataset.k);
+  });
+}
+
+function cardHTML(g){
+  const h = rep(g), mine = g[state.me];
+  const both = g.n && g.j;
+  const owner = both ? null : PEOPLE[h.owner];
+  const tint = owner ? owner.color : '#9A9AA6';
+  const wash = both ? `linear-gradient(120deg, ${PEOPLE.n.color}, ${PEOPLE.j.color})` : owner.color;
+
+  // Check-Button
+  let btn;
+  if(mine){
+    const f = mine.type==='weekly' ? frac(mine,key(today())) : frac(mine,key(today()));
+    const c = PEOPLE[state.me].color;
+    if(f>=1) btn = `<button class="check done" style="background:${c}" data-check="${mine.id}" aria-label="Heute erledigt"><i data-lucide="check"></i></button>`;
+    else if(f>0) btn = `<button class="check" data-check="${mine.id}" aria-label="Heute eintragen"><span class="ring" style="background:conic-gradient(${c} ${f*360}deg, transparent 0);-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 0);mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 0)"></span><i data-lucide="check"></i></button>`;
+    else btn = `<button class="check" data-check="${mine.id}" aria-label="Heute eintragen"><i data-lucide="check"></i></button>`;
+  } else {
+    btn = `<button class="check join" data-join="${g.key}" aria-label="Diesen Habit auch tracken"><i data-lucide="user-plus"></i>Mit</button>`;
+  }
+
+  // Raster
+  const t = today(), start = addDays(mondayOf(t), -(WEEKS-1)*7);
+  const base = baseFor(g);
+  let cells='', months='';
+  let lastM = -1;
+  for(let w=0; w<WEEKS; w++){
+    const wkStart = addDays(start, w*7);
+    const m = wkStart.getMonth();
+    months += `<span>${m!==lastM && wkStart.getDate()<=7 ? MONTHS[m] : ''}</span>`;
+    if(wkStart.getDate()<=7) lastM = m;
+    for(let d=0; d<7; d++){
+      const day = addDays(wkStart,d), k = key(day);
+      if(day>t){ cells += `<div class="cell future"></div>`; continue; }
+      const bg = cellBg(g,k);
+      const jk = ['n','j'].find(p=>g[p] && calc[g[p].id]?.joker.has(k) && frac(g[p],k)===0);
+      const st = (bg?`background:${bg};`:'') + (jk?`box-shadow:inset 0 0 0 1.5px ${PEOPLE[jk].color};`:'');
+      cells += `<div class="cell ${mine?'tap':''} ${+day===+t?'today':''}" data-k="${k}" style="${st}" title="${k}${jk?' (Joker)':''}"></div>`;
+    }
+  }
+
+  const who = ['n','j'].filter(p=>g[p]).map(p=>
+    `<span><span class="dot" style="background:${PEOPLE[p].color}"></span><b>${PEOPLE[p].name}</b> ${personStatus(g[p])}${calc[g[p].id]?.streak?` <span class="streak"><i data-lucide="flame"></i>${calc[g[p].id].streak}</span>`:''}</span>`).join('');
+
+  return `<article class="card" style="--wash:${wash};--base:${base}">
+    <div class="head">
+      <div class="icon" style="background:${mix(tint,18)};color:${both?'var(--ink)':tint}"><i data-lucide="${esc(h.icon)}"></i></div>
+      <div class="titles" ${mine?`data-edit="${mine.id}" style="cursor:pointer"`:''}>
+        <div class="title">${esc(h.name)}</div>
+        ${subline(h)?`<div class="sub">${esc(subline(h))}</div>`:''}
+      </div>
+      ${btn}
+    </div>
+    <div class="who">${who}</div>
+    <div class="grid" data-g="${g.key}" style="grid-template-columns:repeat(${WEEKS},1fr)">${cells}</div>
+    <div class="months" style="grid-template-columns:repeat(${WEEKS},1fr)">${months}</div>
+  </article>`;
+}
+
+function icons(){ try{ lucide.createIcons(); }catch(e){} }
+
+/* ---------- Aktionen ---------- */
+function setLog(h,k,v,text){
+  state.logs[h.id] = state.logs[h.id]||{};
+  if(!v) delete state.logs[h.id][k]; else state.logs[h.id][k]=v;
+  save();
+  push('set_log', {p_habit:h.id, p_day:k, p_value:v||0}, text);
+}
+function onCheck(id){
+  const h = state.habits.find(x=>x.id===id); const k=key(today());
+  if(h.type==='check'||h.type==='weekly'){
+    const on = !state.logs[h.id]?.[k];
+    setLog(h,k,on?1:0, on?`${PEOPLE[state.me].name} hat „${h.name}“ erledigt`:null); render();
+    if(on){ const c=calc[h.id]; toast(`${h.name} erledigt: +${c.pts[k]||0} Punkte${c.streak>1?`, Serie ${c.streak} ${c.unit}`:''}`); }
+  } else openValue(h,k);
+}
+function onCell(gk,k){
+  const g = groups().find(x=>x.key===gk);
+  const mine = g[state.me];
+  if(!mine){
+    const o = g.n||g.j; const v = state.logs[o.id]?.[k];
+    toast(`${PEOPLE[o.owner].name}, ${fmtDay(parseKey(k))}: ${v?valueLabel(o,v):'nicht erledigt'}`);
+    return;
+  }
+  if(mine.type==='check'||mine.type==='weekly'){
+    const on = !state.logs[mine.id]?.[k];
+    setLog(mine,k,on?1:0); render();
+    toast(`${fmtDay(parseKey(k))}: ${on?'eingetragen':'entfernt'}`);
+  } else openValue(mine,k);
+}
+function joinHabit(gk){
+  const g = groups().find(x=>x.key===gk); const src = g.n||g.j;
+  const copy = {...src, id:uid(), owner:state.me, created:key(today())};
+  state.habits.push(copy); state.logs[copy.id]={}; save(); render();
+  saveHabitRemote(copy, `${PEOPLE[state.me].name} macht jetzt auch bei „${src.name}“ mit`);
+  toast(`Du trackst jetzt auch „${src.name}“`);
+}
+function switchMe(){
+  state.me = state.me==='n'?'j':'n'; save(); render();
+  toast(`Ansicht als ${PEOPLE[state.me].name}`);
+}
+
+/* ---------- Sheets ---------- */
+function openSheet(html){
+  $('#sheet').innerHTML = `<div class="grab"></div>${html}`;
+  $('#sheet').classList.add('open'); $('#scrim').classList.add('open'); icons();
+}
+function closeSheet(){ $('#sheet').classList.remove('open'); $('#scrim').classList.remove('open'); }
+$('#scrim').onclick = closeSheet;
+
+function openValue(h,k){
+  let v = state.logs[h.id]?.[k] || 0;
+  const step = h.type==='time' ? 5 : (h.target<=5 ? .25 : 1);
+  const unit = h.type==='time' ? 'Minuten' : (h.unit||'');
+  const isToday = k===key(today());
+  openSheet(`
+    <h3>${esc(h.name)}</h3>
+    <p class="hint">${isToday?'Heute':fmtDay(parseKey(k))} · Ziel ${h.type==='time'?h.target+' Min':fmtNum(h.target)+' '+esc(unit)}</p>
+    <div class="stepper">
+      <button id="vMinus" aria-label="Weniger"><i data-lucide="minus"></i></button>
+      <div class="big"><span id="vVal">${fmtNum(v)}</span><small>${esc(unit)}</small></div>
+      <button id="vPlus" aria-label="Mehr"><i data-lucide="plus"></i></button>
+    </div>
+    <button class="btn ghost" id="vGoal">Ziel erreicht (${h.type==='time'?h.target+' Min':fmtNum(h.target)+' '+esc(unit)})</button>
+    <button class="btn" id="vSave">Speichern</button>`);
+  const upd = () => $('#vVal').textContent = fmtNum(v);
+  $('#vMinus').onclick = () => { v=Math.max(0,Math.round((v-step)*100)/100); upd(); };
+  $('#vPlus').onclick = () => { v=Math.round((v+step)*100)/100; upd(); };
+  $('#vGoal').onclick = () => { v=h.target; upd(); };
+  $('#vSave').onclick = () => { setLog(h,k,v, v>=h.target?`${PEOPLE[state.me].name} hat „${h.name}“ erledigt`:null); closeSheet(); render();
+    const p=calc[h.id].pts[k]; toast(`${h.name}: ${v?valueLabel(h,v):'entfernt'}${p?` · +${p} Punkte`:''}`); };
+}
+
+function openEditor(id){
+  const h = id ? state.habits.find(x=>x.id===id) : {name:'',desc:'',icon:'dumbbell',type:'check',target:2,unit:'',perWeek:3};
+  const otherP = state.me==='n'?'j':'n';
+  const partnerNames = [...new Set(state.habits.filter(x=>x.owner===otherP).map(x=>x.name))];
+  let d = {...h};
+  const typeFields = () => {
+    if(d.type==='count') return `<div class="row"><div class="field"><label>Ziel pro Tag</label><input class="input" id="eTarget" type="number" inputmode="decimal" min="0" step="any" value="${d.target||2}"></div>
+      <div class="field"><label>Einheit</label><input class="input" id="eUnit" placeholder="z.B. Liter" value="${esc(d.unit||'')}"></div></div>`;
+    if(d.type==='time') return `<div class="field"><label>Minuten pro Tag</label><input class="input" id="eTarget" type="number" inputmode="numeric" min="1" value="${d.target||20}"></div>`;
+    if(d.type==='weekly') return `<div class="field"><label>Wie oft pro Woche?</label><input class="input" id="ePer" type="number" inputmode="numeric" min="1" max="7" value="${d.perWeek||3}"></div>`;
+    return '';
+  };
+  const draw = () => {
+    openSheet(`
+      <h3>${id?'Habit bearbeiten':'Neuer Habit'}</h3>
+      <p class="hint">Gleicher Name wie bei ${PEOPLE[otherP].name}? Dann teilt ihr euch eine Karte.</p>
+      <div class="field"><label>Name</label><input class="input" id="eName" list="pn" value="${esc(d.name)}" placeholder="z.B. Gym">
+        <datalist id="pn">${partnerNames.map(n=>`<option value="${esc(n)}">`).join('')}</datalist></div>
+      <div class="field"><label>Beschreibung (optional)</label><input class="input" id="eDesc" value="${esc(d.desc)}" placeholder="z.B. Bett machen"></div>
+      <div class="field"><label>Art</label><div class="seg">${Object.entries(TYPES).map(([t,v])=>`<button data-t="${t}" class="${d.type===t?'on':''}">${v.label}</button>`).join('')}</div></div>
+      <div id="tf">${typeFields()}</div>
+      <div class="field"><label>Symbol</label><div class="icons">${ICONS.map(ic=>`<button data-ic="${ic}" class="${d.icon===ic?'on':''}" aria-label="${ic}"><i data-lucide="${ic}"></i></button>`).join('')}</div></div>
+      <button class="btn" id="eSave">${id?'Änderungen speichern':'Habit anlegen'}</button>
+      ${id?'<button class="btn danger" id="eDel">Habit löschen</button>':''}`);
+    const grab = () => {
+      d.name=$('#eName').value; d.desc=$('#eDesc').value;
+      if($('#eTarget')) d.target=parseFloat($('#eTarget').value)||1;
+      if($('#eUnit')) d.unit=$('#eUnit').value;
+      if($('#ePer')) d.perWeek=Math.min(7,Math.max(1,parseInt($('#ePer').value)||3));
+    };
+    document.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{grab(); d.type=b.dataset.t; draw();});
+    document.querySelectorAll('[data-ic]').forEach(b=>b.onclick=()=>{grab(); d.icon=b.dataset.ic; draw();});
+    $('#eSave').onclick = () => {
+      grab();
+      if(!d.name.trim()){ toast('Gib dem Habit einen Namen.'); return; }
+      d.name = d.name.trim();
+      const clash = state.habits.find(x=>x.owner===state.me && x.id!==id && x.name.trim().toLowerCase()===d.name.toLowerCase());
+      if(clash){ toast('Du hast schon einen Habit mit diesem Namen.'); return; }
+      let target;
+      if(id){ Object.assign(h,d); target=h; }
+      else { target={...d,id:uid()+uid(),owner:state.me,created:key(today())}; state.habits.push(target); state.logs[target.id]={}; }
+      save(); closeSheet(); render(); toast(id?'Gespeichert':'Habit angelegt');
+      saveHabitRemote(target, id?null:`${PEOPLE[state.me].name} hat einen neuen Habit: „${target.name}“`);
+    };
+    if(id) $('#eDel').onclick = () => {
+      if(!confirm(`„${h.name}“ mit allen Einträgen löschen?`)) return;
+      state.habits = state.habits.filter(x=>x.id!==id); delete state.logs[id];
+      save(); closeSheet(); render(); toast('Habit gelöscht');
+      push('delete_habit', {p_id:id});
+    };
+  };
+  draw();
+}
+
+function openRanking(per){
+  computeAll();
+  const [a,b] = periodRange(per);
+  const pts = {n:pointsFor('n',a,b), j:pointsFor('j',a,b)};
+  const max = Math.max(pts.n, pts.j, 1);
+  const lead = pts.n>pts.j?'n':pts.j>pts.n?'j':null;
+  const hist = weekHistory();
+  const wins = {n:hist.filter(x=>x.win==='n').length, j:hist.filter(x=>x.win==='j').length};
+  const order = lead==='j'?['j','n']:['n','j'];
+  const labels = {week:'Diese Woche',month:'Dieser Monat',year:'Dieses Jahr',all:'Gesamt'};
+  const diff = Math.abs(pts.n-pts.j);
+  const st = p => { const b=bestStreak(p); return b?`<i data-lucide="flame" style="width:18px;height:18px;color:#F59E0B"></i>${b.streak} <small style="font-size:13px;color:var(--ink2);font-weight:500">${esc(b.name)}</small>`:'–'; };
+  openSheet(`
+    <h3>Rangliste</h3>
+    <p class="hint">${lead?`${PEOPLE[lead].name} liegt ${diff} Punkte vorne.`:'Gleichstand. Wer legt vor?'}</p>
+    <div class="seg" style="margin-bottom:6px">${Object.entries({week:'Woche',month:'Monat',year:'Jahr',all:'Gesamt'}).map(([k,l])=>`<button data-per="${k}" class="${per===k?'on':''}">${l}</button>`).join('')}</div>
+    ${order.map(p=>`<div class="rank">
+      <span class="avatar" style="background:${PEOPLE[p].color}">${lead===p?'<span class="crown"><i data-lucide="crown"></i></span>':''}${PEOPLE[p].name[0]}</span>
+      <div class="rank-main">
+        <div class="rank-top"><span>${PEOPLE[p].name}</span><span class="rank-pts">${pts[p]}<small> P</small></span></div>
+        <div class="duo-bar"><i style="width:${Math.round(pts[p]/max*100)}%;background:${PEOPLE[p].color}"></i></div>
+      </div></div>`).join('')}
+    <div class="statgrid">
+      <div class="stat"><div class="k">Wochensiege ${PEOPLE.n.name}</div><div class="v">${wins.n}</div></div>
+      <div class="stat"><div class="k">Wochensiege ${PEOPLE.j.name}</div><div class="v">${wins.j}</div></div>
+      <div class="stat"><div class="k">Längste Serie ${PEOPLE.n.name}</div><div class="v">${st('n')}</div></div>
+      <div class="stat"><div class="k">Längste Serie ${PEOPLE.j.name}</div><div class="v">${st('j')}</div></div>
+    </div>
+    <h4>So gibt es Punkte</h4>
+    <div class="rules">
+      <p><b>Tägliche Habits:</b> ${RULES.base} Punkte, wenn das Tagesziel erreicht ist. Dazu +1 Bonus pro Tag in der Serie, höchstens +${RULES.streakMax}.</p>
+      <p><b>Joker:</b> Pro Habit darf jede Woche ein Tag ausfallen, ohne dass die Serie reisst. Er wird automatisch eingesetzt und im Raster mit einem farbigen Rand markiert.</p>
+      <p><b>Wochenziele:</b> ${RULES.weekBase} Punkte pro Mal bis zum Ziel, danach ${RULES.weekExtra}. Wird das Ziel erreicht, gibt es +${RULES.weekStep} Bonus pro Woche in der Serie, höchstens +${RULES.weekMax}.</p>
+      <p><b>Wochensieg:</b> Wer von Montag bis Sonntag mehr Punkte hat.</p>
+    </div>`);
+  document.querySelectorAll('[data-per]').forEach(x=>x.onclick=()=>openRanking(x.dataset.per));
+}
+
+function openSettings(){
+  openSheet(`
+    <h3>Einstellungen</h3>
+    <p class="hint">${online?'Verbunden. Änderungen erscheinen sofort beim anderen.':'Gerade keine Verbindung. Änderungen werden beim nächsten Öffnen geladen.'}</p>
+    <div class="field"><label>Euer Einladungscode</label><div class="code">${fmtCode(state.code)}</div>
+      <button class="btn ghost" id="sShare">Code teilen</button>
+      <div class="note">Den gibt die zweite Person beim ersten Start ein. Teilt ihn mit niemand anderem.</div></div>
+    <div class="setrow"><span>Dieses iPhone gehört</span>
+      <div class="seg" style="grid-template-columns:1fr 1fr;width:200px">${['n','j'].map(p=>`<button data-me="${p}" class="${state.me===p?'on':''}">${PEOPLE[p].name}</button>`).join('')}</div></div>
+    <button class="btn ghost" id="sSync" style="margin-top:16px">Jetzt neu laden</button>
+    <button class="btn danger" id="sLogout">Auf diesem iPhone abmelden</button>
+    <div class="note" style="text-align:center">Eure Daten bleiben gespeichert. Mit dem Code kommst du jederzeit wieder rein.</div>`);
+  document.querySelectorAll('[data-me]').forEach(b=>b.onclick=()=>{state.me=b.dataset.me;save();closeSheet();render();});
+  $('#sShare').onclick = async () => {
+    const text = `Unser Code für Zusammen: ${fmtCode(state.code)}\n${location.href.split('#')[0]}`;
+    try{ if(navigator.share) await navigator.share({text}); else { await navigator.clipboard.writeText(text); toast('Code kopiert'); } }catch(e){}
+  };
+  $('#sSync').onclick = () => { closeSheet(); pull().then(()=>toast(online?'Aktualisiert':'Keine Verbindung')); };
+  $('#sLogout').onclick = () => { if(!confirm('Auf diesem iPhone abmelden? Du brauchst danach den Code, um wieder reinzukommen.')) return;
+    try{localStorage.removeItem(STORE);}catch(e){} try{channel&&sb.removeChannel(channel);}catch(e){} channel=null; state=null; loaded=false; closeSheet(); render(); };
+}
+
+/* ---------- Onboarding ---------- */
+function renderOnboarding(){
+  let me = null, mode = 'new';
+  const draw = () => {
+    $('#app').innerHTML = `<div class="onb">
+      <div class="logo"><span style="background:${PEOPLE.n.color}"></span><span style="background:${PEOPLE.j.color}"></span></div>
+      <h1>Zusammen dranbleiben</h1>
+      <p>Jeder trackt seine eigenen Habits, ihr seht euch gegenseitig und pusht euch an.</p>
+      <div class="pick">${['n','j'].map(p=>`<button data-p="${p}" class="${me===p?'on':''}">
+        <span class="avatar" style="background:${PEOPLE[p].color}">${PEOPLE[p].name[0]}</span>Ich bin ${PEOPLE[p].name}</button>`).join('')}</div>
+      <div class="seg" style="grid-template-columns:1fr 1fr;margin-bottom:16px">
+        <button data-m="new" class="${mode==='new'?'on':''}">Neu starten</button>
+        <button data-m="join" class="${mode==='join'?'on':''}">Code eingeben</button></div>
+      ${mode==='join'?`<div class="field"><input class="input" id="oCode" placeholder="z.B. K7M4Q-X2PLR" autocapitalize="characters" style="text-align:center;letter-spacing:.1em;font-weight:600"></div>`:''}
+      <button class="btn" id="oGo" ${me?'':'disabled style="opacity:.4"'}>${mode==='new'?'Bereich erstellen':'Verbinden'}</button>
+      <div class="note" style="text-align:center;margin-top:12px">${mode==='new'?'Danach bekommst du einen Code für Julia bzw. Nikolaj.':'Den Code findet die andere Person unter Einstellungen.'}</div>
+    </div>`;
+    document.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>{me=b.dataset.p;draw();});
+    document.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>{mode=b.dataset.m;draw();});
+    $('#oGo').onclick = async () => {
+      if(!me) return;
+      const btn = $('#oGo'); btn.disabled = true; btn.textContent = 'Einen Moment …';
+      try{
+        let code;
+        if(mode==='new'){ code = makeCode(); await rpc('create_space', {p_code: code}); }
+        else {
+          code = normCode($('#oCode').value);
+          if(code.length!==10){ toast('Der Code hat 10 Zeichen, z.B. K7M4Q-X2PLR.'); draw(); return; }
+          await rpc('get_space', {p_code: code});
+        }
+        state = {me, code, habits:[], logs:{}}; save(); loaded=false;
+        connect(); await pull();
+        if(mode==='new') openSettings(); else toast('Verbunden');
+      }catch(e){
+        console.error(e);
+        toast(mode==='join' ? 'Diesen Code gibt es nicht. Prüfe die Schreibweise.' : 'Keine Verbindung zur Datenbank. Versuch es nochmal.');
+        draw();
+      }
+    };
+    icons();
+  };
+  draw();
+}
+
+let tt;
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(tt); tt=setTimeout(()=>t.classList.remove('show'),2400); }
+
+render();
+if(state && state.code){ connect(); pull(); }
+const refresh = () => { if(state && state.code && document.visibilityState==='visible') pull(); };
+document.addEventListener('visibilitychange', refresh);
+setInterval(refresh, 60000);
+if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(()=>{}); }
+</script>
+</body>
+</html>
