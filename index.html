@@ -132,6 +132,11 @@ h4{font-size:15px;margin:18px 0 6px}
   padding:10px 20px calc(24px + env(safe-area-inset-bottom,0px));max-height:88vh;overflow-y:auto;
   transform:translateY(105%);transition:transform .28s cubic-bezier(.2,.8,.2,1);max-width:560px;margin:0 auto;box-shadow:var(--shadow)}
 .sheet.open{transform:none}
+.sheet-x{position:absolute;top:12px;right:14px;width:36px;height:36px;border-radius:50%;background:var(--btn);display:grid;place-items:center}
+.sheet-x svg{width:18px;height:18px}
+.sheet h3{padding-right:44px}
+.emo{font-size:30px;line-height:1}
+.icons .emo{font-size:22px}
 .grab{width:40px;height:5px;border-radius:3px;background:var(--line);margin:0 auto 14px}
 .sheet h3{font-size:22px;margin:0 0 4px;letter-spacing:-.01em}
 .sheet .hint{color:var(--ink2);font-size:14px;margin:0 0 16px}
@@ -198,7 +203,9 @@ const PEOPLE = {
   j:{id:'j', name:'Julia',   color:'#F27B80'}
 };
 const ICONS = ['dumbbell','pill','bed-double','sprout','book-open','glass-water','footprints','moon',
-  'heart','brain','apple','bike','music','pencil','sun','droplets','salad','languages','bath','smile'];
+  'heart','brain','apple','bike','music','pencil','sun','droplets','salad','languages','bath','smile',
+  '🏒','⛸️','⚽','🎾','🏊','🧘','⛷️','🏃'];
+const iconHTML = ic => /^[a-z-]+$/.test(ic||'') ? `<i data-lucide="${ic}"></i>` : `<span class="emo">${esc(ic)}</span>`;
 const TYPES = {
   check:{label:'Abhaken'}, count:{label:'Menge'}, time:{label:'Zeit'}, weekly:{label:'Wochenziel'}
 };
@@ -565,7 +572,7 @@ function cardHTML(g){
 
   return `<article class="card" style="--wash:${wash};--base:${base}">
     <div class="head">
-      <div class="icon" style="background:${mix(tint,18)};color:${both?'var(--ink)':tint}"><i data-lucide="${esc(h.icon)}"></i></div>
+      <div class="icon" style="background:${mix(tint,18)};color:${both?'var(--ink)':tint}">${iconHTML(h.icon)}</div>
       <div class="titles" ${mine?`data-edit="${mine.id}" style="cursor:pointer"`:''}>
         <div class="title">${esc(h.name)}</div>
         ${subline(h)?`<div class="sub">${esc(subline(h))}</div>`:''}
@@ -623,7 +630,8 @@ function switchMe(){
 
 /* ---------- Sheets ---------- */
 function openSheet(html){
-  $('#sheet').innerHTML = `<div class="grab"></div>${html}`;
+  $('#sheet').innerHTML = `<div class="grab"></div><button class="sheet-x" id="sheetX" aria-label="Schliessen"><i data-lucide="x"></i></button>${html}`;
+  $('#sheetX').onclick = closeSheet;
   $('#sheet').classList.add('open'); $('#scrim').classList.add('open'); icons();
 }
 function closeSheet(){ $('#sheet').classList.remove('open'); $('#scrim').classList.remove('open'); }
@@ -673,17 +681,21 @@ function openEditor(id){
       <div class="field"><label>Beschreibung (optional)</label><input class="input" id="eDesc" value="${esc(d.desc)}" placeholder="z.B. Bett machen"></div>
       <div class="field"><label>Art</label><div class="seg">${Object.entries(TYPES).map(([t,v])=>`<button data-t="${t}" class="${d.type===t?'on':''}">${v.label}</button>`).join('')}</div></div>
       <div id="tf">${typeFields()}</div>
-      <div class="field"><label>Symbol</label><div class="icons">${ICONS.map(ic=>`<button data-ic="${ic}" class="${d.icon===ic?'on':''}" aria-label="${ic}"><i data-lucide="${ic}"></i></button>`).join('')}</div></div>
+      <div class="field"><label>Symbol</label><div class="icons">${ICONS.map(ic=>`<button data-ic="${esc(ic)}" class="${d.icon===ic?'on':''}" aria-label="${esc(ic)}">${iconHTML(ic)}</button>`).join('')}</div></div>
+      <div class="field"><label>Oder eigenes Emoji</label><input class="input" id="eEmoji" maxlength="8" placeholder="Emoji-Tastatur öffnen und eins wählen" value="${ICONS.includes(d.icon)?'':esc(d.icon)}"></div>
       <button class="btn" id="eSave">${id?'Änderungen speichern':'Habit anlegen'}</button>
+      <button class="btn ghost" id="eCancel">Abbrechen</button>
       ${id?'<button class="btn danger" id="eDel">Habit löschen</button>':''}`);
+    $('#eCancel').onclick = closeSheet;
     const grab = () => {
       d.name=$('#eName').value; d.desc=$('#eDesc').value;
       if($('#eTarget')) d.target=parseFloat($('#eTarget').value)||1;
       if($('#eUnit')) d.unit=$('#eUnit').value;
       if($('#ePer')) d.perWeek=Math.min(7,Math.max(1,parseInt($('#ePer').value)||3));
+      const em = ($('#eEmoji').value||'').trim(); if(em) d.icon = em;
     };
     document.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{grab(); d.type=b.dataset.t; draw();});
-    document.querySelectorAll('[data-ic]').forEach(b=>b.onclick=()=>{grab(); d.icon=b.dataset.ic; draw();});
+    document.querySelectorAll('[data-ic]').forEach(b=>b.onclick=()=>{grab(); $('#eEmoji').value=''; d.icon=b.dataset.ic; draw();});
     $('#eSave').onclick = () => {
       grab();
       if(!d.name.trim()){ toast('Gib dem Habit einen Namen.'); return; }
